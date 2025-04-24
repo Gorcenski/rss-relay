@@ -99,19 +99,26 @@ if __name__ == "__main__":
     # future improvement: set the insert and the posting to be atomic
     # so if there's a posting error, a single entry can be rolled back
     # probably not necessary for the primary use case
-    if args.load_feed:
-        new_posts = (args.load_feed 
-            | load_rss 
-            | save_rss(args.file_name)
-            | Pipe(RSSParser.parse)
-            | Pipe(lambda x: x.channel.items)
-            | select(Post)
-            | where(lambda x: x.is_postworthy())
-            | select(insert_posts)
-            | where(lambda x: x is not None))
+    try:
+        if args.load_feed:
+            new_posts = (args.load_feed 
+                | load_rss 
+                | save_rss(args.file_name)
+                | Pipe(RSSParser.parse)
+                | Pipe(lambda x: x.channel.items)
+                | select(Post)
+                | where(lambda x: x.is_postworthy())
+                | select(insert_posts)
+                | where(lambda x: x is not None))
+    except Exception as e:
+        print(f"Error processing feed: {e}")
+        conn.close()
+        exit(1)
     
     if args.skeet:
         new_posts = new_posts | Pipe(Bluesky.post_skeets)
+
+    print(list(new_posts))
     
     conn.close()
     

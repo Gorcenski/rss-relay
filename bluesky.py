@@ -2,6 +2,7 @@ from functools import partial
 import html
 import os
 from io import BytesIO
+import re
 from PIL import Image
 from atproto import Client, models, client_utils
 from dotenv import load_dotenv
@@ -57,9 +58,23 @@ class Bluesky(Sharer):
             ))
         
         tb = client_utils.TextBuilder()
-        comment = cls.trim_post(post.title, post.comment)
-        client.send_post(tb.link(post.title, post.link).text(f"\n\n{comment}"),
-                         embed=embed_external)
+        if "bookwyrm" in post.link:
+            splits = re.split(r"(Emily Gorcenski )([a-z]+)( reading )", post.title)
+            title_idx = splits[-1].rfind(" by")
+            title = splits[-1][0:title_idx]
+            byline = splits[-1][title_idx:]
+            comment = post.comment.replace(f"(comment on {title})", "")
+            comment = cls.trim_post(post.title, comment)
+            body = tb.text("".join(splits[0:-1])) \
+                     .link(title, post.link) \
+                     .text(re.sub("(\n)+", " ", byline)) \
+                     .text(f"\n\n{comment}")
+        
+        else:
+            comment = cls.trim_post(post.title, post.comment)
+            body = tb.link(post.title, post.link).text(f"\n\n{comment}")
+        
+        client.send_post(body, embed=embed_external)
         return post
 
     @classmethod

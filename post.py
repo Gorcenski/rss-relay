@@ -73,7 +73,9 @@ class Post:
         return None
 
     def __init__(self, item : Item):
-        if item.guid.content != Post.get_link_url(item):
+        if item.guid.content != Post.get_link_url(item) or \
+            not item.enclosures or \
+            len(item.enclosures) == 0:
             image, description = self.fetch_remote_meta(self.get_link_url(item))
         else:
             image = str(item.enclosures[0].attributes.get("url"))
