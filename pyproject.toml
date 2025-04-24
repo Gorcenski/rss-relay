@@ -1,0 +1,18 @@
+[project]
+name = "rss-relay"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "atproto>=0.0.61",
+    "beautifulsoup4>=4.13.4",
+    "dotenv>=0.9.9",
+    "httpx>=0.28.1",
+    "mastodon-py>=2.0.1",
+    "pillow>=11.2.1",
+    "pipe>=2.2",
+    "playwright>=1.51.0",
+    "requests>=2.32.3",
+    "rss-parser>=2.1.0",
+]
