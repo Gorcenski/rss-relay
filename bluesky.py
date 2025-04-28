@@ -69,7 +69,7 @@ class Bluesky(Sharer):
             byline = splits[-1][title_idx:]
             comment = post.comment.replace(f"(comment on {title})", "")
             comment = cls.trim_post(post.title, comment)
-            body = tb.text("".join(splits[0:-1])) \
+            body = tb.text("".join(splits[0:-1]).replace("Emily Gorcenski", "I")) \
                      .link(title, post.link) \
                      .text(re.sub("(\n)+", " ", byline)) \
                      .text(f"\n\n{comment}")
