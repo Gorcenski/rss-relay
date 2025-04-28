@@ -72,18 +72,18 @@ class Post:
             print(e)
         return None
 
-    def __init__(self, item : Item):
-        if item.guid.content != Post.get_link_url(item) or \
-            not item.enclosures or \
-            len(item.enclosures) == 0:
-            image, description = self.fetch_remote_meta(self.get_link_url(item))
-        else:
-            image = str(item.enclosures[0].attributes.get("url"))
-            description = self.get_comment(item.description.content)
+    def populate_meta(self):
+        if self.guid != self.link or not self.image:
+            self.image, self.description = self.fetch_remote_meta(self.link)
+        return self
 
-        self.title          = item.title.content
-        self.link           = self.get_link_url(item)
-        self.guid           = item.guid.content
-        self.description    = description
-        self.comment        = self.get_comment(item.description.content)
-        self.image          = image
+    def __init__(self, item : Item):
+        self.title = item.title.content
+        self.link = self.get_link_url(item)
+        self.guid = item.guid.content
+        self.description = self.get_comment(item.description.content)
+        if item.enclosures and len(item.enclosures) > 0:
+            self.image = str(item.enclosures[0].attributes.get("url"))
+        else:
+            self.image = None
+        self.comment = self.get_comment(item.description.content)

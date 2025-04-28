@@ -48,14 +48,18 @@ class Bluesky(Sharer):
                 img_data = img_data if len(img_data) < 1000000 \
                                     else cls.resize_image(img_data)
                 thumb_blob = client.upload_blob(img_data).blob  
-        
-        embed_external = models.AppBskyEmbedExternal.Main(
-            external=models.AppBskyEmbedExternal.External(
-                title=post.title,
-                description=html.unescape(post.description),
-                uri=post.link,
-                thumb=thumb_blob
-            ))
+        if thumb_blob or post.description:
+            embed_external = models.AppBskyEmbedExternal.Main(
+                external=models.AppBskyEmbedExternal.External(
+                    title=post.title,
+                    description=None
+                                if not post.description
+                                else html.unescape(post.description),
+                    uri=post.link,
+                    thumb=thumb_blob
+                ))
+        else:
+            embed_external = None
         
         tb = client_utils.TextBuilder()
         if "bookwyrm" in post.link:
@@ -73,7 +77,6 @@ class Bluesky(Sharer):
         else:
             comment = cls.trim_post(post.title, post.comment)
             body = tb.link(post.title, post.link).text(f"\n\n{comment}")
-        
         client.send_post(body, embed=embed_external)
         return post
 

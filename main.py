@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
 import sqlite3
-from pipe import Pipe, select, where
+from pipe import Pipe, select, where, traverse
 import requests
 from rss_parser import RSSParser
 from rss_parser.models.rss.item import Item
@@ -66,9 +66,11 @@ def add_post(post, conn, cursor):
         return post
     except sqlite3.IntegrityError as e:
         return None
+    
+@Pipe
+def parse_rss_to_items(feed : str):
+    return RSSParser.parse(feed).channel.items
 
-def main():
-    print("Hello from rss-relay!")
 
 
 if __name__ == "__main__":
@@ -79,19 +81,12 @@ if __name__ == "__main__":
                         help="Load a feed from a URL",
                         metavar='URL',
                         type=str)
-    parser.add_argument("-f",
-                        "--file-name",
-                        help="Filename to save the feed",
-                        metavar='FILE',
-                        default='',
-                        type=str)
     parser.add_argument("-s",
                         "--skeet",
                         help="Post to Bluesky",
                         action="store_true")
     args = parser.parse_args()
-    if args.load_feed and not args.file_name:
-        parser.error("--load-feed requires --file-name")
+
     
     conn, cursor = db_connect()
     insert_posts = partial(add_post, conn=conn, cursor=cursor)
@@ -103,13 +98,12 @@ if __name__ == "__main__":
         if args.load_feed:
             new_posts = (args.load_feed 
                 | load_rss 
-                | save_rss(args.file_name)
-                | Pipe(RSSParser.parse)
-                | Pipe(lambda x: x.channel.items)
+                | parse_rss_to_items
                 | select(Post)
                 | where(lambda x: x.is_postworthy())
                 | select(insert_posts)
-                | where(lambda x: x is not None))
+                | where(lambda x: x is not None)
+                | select(lambda x: x.populate_meta()))
     except Exception as e:
         print(f"Error processing feed: {e}")
         conn.close()
@@ -118,7 +112,7 @@ if __name__ == "__main__":
     if args.skeet:
         new_posts = new_posts | Pipe(Bluesky.post_skeets)
 
-    print(list(new_posts))
+    list(new_posts)
     
     conn.close()
     
